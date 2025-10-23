@@ -1,0 +1,170 @@
+[gd_scene load_steps=23 format=3 uid="uid://chd0q4tj38sds"]
+
+[ext_resource type="Texture2D" uid="uid://d4inqlq86j54m" path="res://Units/Red Units/Torch_Goblin/Torch_Red.png" id="1_xfbel"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kq40x"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(0, 384, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5r2om"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(192, 384, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pqo4d"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(384, 384, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rjh0o"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(576, 384, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tvuya"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(768, 384, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uo8d5"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(960, 384, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mdorh"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(0, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wwlmj"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(192, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_j8ett"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(384, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bj0qs"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(576, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qw7hi"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_apj57"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(960, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qbvmn"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(1152, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f540k"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(0, 192, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sxabe"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(192, 192, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5qhdv"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(384, 192, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ys0s4"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(576, 192, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7drqo"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(768, 192, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vvklj"]
+atlas = ExtResource("1_xfbel")
+region = Rect2(960, 192, 192, 192)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_qh5tp"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kq40x")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5r2om")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pqo4d")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rjh0o")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tvuya")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_uo8d5")
+}],
+"loop": true,
+"name": &"attack",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mdorh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wwlmj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_j8ett")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bj0qs")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qw7hi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_apj57")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qbvmn")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_f540k")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sxabe")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5qhdv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ys0s4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7drqo")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vvklj")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 10.0
+}]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_swy27"]
+radius = 18.0
+height = 64.0
+
+[node name="GoblinTorch" type="StaticBody2D"]
+
+[node name="GoblinTorchSprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_qh5tp")
+animation = &"attack"
+autoplay = "idle"
+frame_progress = 0.1504857
+
+[node name="GoblinTorchCollision" type="CollisionShape2D" parent="."]
+position = Vector2(-1, 5)
+shape = SubResource("CapsuleShape2D_swy27")

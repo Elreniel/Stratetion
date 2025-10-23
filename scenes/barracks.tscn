@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://x4h0ku5bj2ks"]
+
+[ext_resource type="Texture2D" uid="uid://bchg7ok2wwwv5" path="res://Buildings/Red Buildings/Barracks.png" id="1_a2mic"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_65la3"]
+size = Vector2(153, 166)
+
+[node name="Barracks" type="StaticBody2D"]
+
+[node name="BarrackSprite" type="Sprite2D" parent="."]
+texture = ExtResource("1_a2mic")
+
+[node name="BarrackCollision" type="CollisionShape2D" parent="." groups=["interactable"]]
+position = Vector2(0.5, 21)
+shape = SubResource("RectangleShape2D_65la3")

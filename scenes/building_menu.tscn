@@ -1,0 +1,61 @@
+[gd_scene load_steps=2 format=3 uid="uid://t8d55hi835bi"]
+
+[ext_resource type="Script" uid="uid://dl2sww3ggrft1" path="res://scripts/building_menu.gd" id="1_updix"]
+
+[node name="BuildingMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_updix")
+
+[node name="HouseButton" type="Button" parent="."]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 0
+offset_right = 80.0
+offset_bottom = 80.0
+text = "House"
+
+[node name="BarrackButton" type="Button" parent="."]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+text = "Barracks"
+
+[node name="MineButton" type="Button" parent="."]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+text = "Mine"
+
+[node name="ArcheryButton" type="Button" parent="."]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+text = "Archery"
+
+[node name="MonastryButton" type="Button" parent="."]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+text = "Monastry"
+
+[node name="TowerButton" type="Button" parent="."]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+text = "Tower"
+
+[node name="WoodTowerButton" type="Button" parent="."]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+text = "Wood Tower"

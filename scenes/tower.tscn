@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://ky2rkmtaoj1o"]
+
+[ext_resource type="Texture2D" uid="uid://be1ylpi3hrvga" path="res://Buildings/Red Buildings/Tower.png" id="1_2x682"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_65la3"]
+size = Vector2(123, 185)
+
+[node name="Tower" type="StaticBody2D"]
+
+[node name="TowerSprite" type="Sprite2D" parent="."]
+texture = ExtResource("1_2x682")
+
+[node name="TowerCollision" type="CollisionShape2D" parent="." groups=["interactable"]]
+position = Vector2(0.5, 9.5)
+shape = SubResource("RectangleShape2D_65la3")
