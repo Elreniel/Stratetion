@@ -210,6 +210,7 @@ height = 74.0
 script = ExtResource("1_g2els")
 
 [node name="PlayerSprite" type="AnimatedSprite2D" parent="."]
+scale = Vector2(1.5, 1.5)
 sprite_frames = SubResource("SpriteFrames_60mlk")
 animation = &"walk_up"
 autoplay = "idle"
@@ -217,4 +218,5 @@ frame_progress = 0.67424655
 
 [node name="PlayerCollision" type="CollisionShape2D" parent="."]
 position = Vector2(-1, 6)
+scale = Vector2(1.5, 1.5)
 shape = SubResource("CapsuleShape2D_qhqgy")
