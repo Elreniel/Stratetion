@@ -1,19 +1,21 @@
 extends Node2D
 
 # Preload the scenes
-@onready var house_scene = preload("res://scenes/house.tscn")
-@onready var pawn_scene = preload("res://scenes/pawn.tscn")
-@onready var archer_scene = preload("res://scenes/archer.tscn")
-@onready var lancer_scene = preload("res://scenes/lancer.tscn")
-@onready var monk_scene = preload("res://scenes/monk.tscn")
-@onready var knight_scene = preload("res://scenes/knight.tscn")
-@onready var barracks_scene = preload("res://scenes/barracks.tscn")
-@onready var mine_scene = preload("res://scenes/mine.tscn")
-@onready var archery_scene = preload("res://scenes/archery.tscn")
-@onready var monastry_scene = preload("res://scenes/monastry.tscn")
-@onready var tower_scene = preload("res://scenes/tower.tscn")
-@onready var wood_tower_scene = preload("res://scenes/wood_tower.tscn")
-@onready var building_menu_scene = preload("res://scenes/building_menu.tscn")
+@onready var house_scene = preload("res://scenes/buildings/house.tscn")
+@onready var barracks_scene = preload("res://scenes/buildings/barracks.tscn")
+@onready var mine_scene = preload("res://scenes/buildings/mine.tscn")
+@onready var archery_scene = preload("res://scenes/buildings/archery.tscn")
+@onready var monastry_scene = preload("res://scenes/buildings/monastry.tscn")
+@onready var tower_scene = preload("res://scenes/buildings/tower.tscn")
+@onready var wood_tower_scene = preload("res://scenes/buildings/wood_tower.tscn")
+
+@onready var pawn_scene = preload("res://scenes/units/pawn.tscn")
+@onready var archer_scene = preload("res://scenes/units/archer.tscn")
+@onready var lancer_scene = preload("res://scenes/units/lancer.tscn")
+@onready var monk_scene = preload("res://scenes/units/monk.tscn")
+@onready var knight_scene = preload("res://scenes/units/knight.tscn")
+
+@onready var building_menu_scene = preload("res://scenes/ui/building_menu.tscn")
 
 # Building mode
 var building_mode: bool = false
@@ -157,6 +159,9 @@ func get_available_unit_types() -> Array:
 	return available_types
 
 func _check_for_marriages():
+	# Check if houses should become available again
+	check_house_availability()
+	
 	# Find all single pawns
 	var single_pawns = []
 	for pawn in all_pawns:
@@ -176,6 +181,23 @@ func _check_for_marriages():
 		var house = empty_houses.pop_front()
 		
 		marry_pawns(pawn1, pawn2, house)
+
+# New function to check house availability
+func check_house_availability():
+	for house in all_houses:
+		if is_instance_valid(house) and house.is_occupied:
+			# Remove invalid (dead) occupants
+			var valid_occupants = []
+			for occupant in house.occupants:
+				if is_instance_valid(occupant):
+					valid_occupants.append(occupant)
+			
+			house.occupants = valid_occupants
+			
+			# If no valid occupants remain, free the house
+			if house.occupants.size() == 0:
+				house.is_occupied = false
+				log_message("House became available again")
 
 func marry_pawns(pawn1, pawn2, house):
 	# Mark the house as occupied first
