@@ -15,6 +15,8 @@ extends Node2D
 @onready var monk_scene = preload("res://scenes/units/monk.tscn")
 @onready var knight_scene = preload("res://scenes/units/knight.tscn")
 
+@onready var goblin_torch_scene = preload("res://scenes/units/goblin_torch.tscn")
+
 @onready var building_menu_scene = preload("res://scenes/ui/building_menu.tscn")
 
 # Building mode
@@ -49,6 +51,20 @@ var has_barracks: bool = false
 var has_archery: bool = false
 var has_monastry: bool = false
 
+var castle_position: Vector2 = Vector2.ZERO
+
+var enemy_spawn_timer: Timer = null
+var spawn_interval_min: float = 15.0
+var spawn_interval_max: float = 25.0
+var spawn_distance_from_edge: float = 100.0
+var max_enemies: int = 20  # Limit total enemies
+
+# Difficulty scaling
+var game_time: float = 0.0
+var difficulty_increase_interval: float = 60.0  # Increase difficulty every 60 seconds
+var spawn_rate_multiplier: float = 1.0
+var max_enemies_increase: int = 2  # Add 2 to max enemies per difficulty increase
+
 # Log display
 var log_label: Label
 var log_messages: Array = []
@@ -59,17 +75,21 @@ var camera: Camera2D
 
 func _ready():
 	
+	var castle = get_node_or_null("Castle")
+	if castle:
+		castle_position = castle.global_position
+	else:
+		# Option 2: Manual position (adjust to your castle location)
+		castle_position = Vector2(background_width / 2, background_height / 2)
+	
 	background_width = main_background.size.x
 	background_height = main_background.size.y
 	
 	# Get camera reference (adjust path to your camera)
 	camera = get_viewport().get_camera_2d()
 	
-	# Create log label
-	create_log_label()
-	
-	log_message("Press 'B' to open building menu!")
-	log_message("Press 'ESC' to cancel building")
+	print("Press 'B' to open building menu!")
+	print("Press 'ESC' to cancel building")
 	
 	# Create a timer to periodically check for marriage opportunities
 	marriage_check_timer = Timer.new()
@@ -81,46 +101,8 @@ func _ready():
 	# Add existing pawns to the list
 	call_deferred("_register_existing_pawns")
 	call_deferred("_register_existing_houses")
-
-func create_log_label():
-	log_label = Label.new()
-	log_label.add_theme_font_size_override("font_size", 16)  # Increased size
-	log_label.add_theme_color_override("font_color", Color.WHITE)
-	log_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	log_label.add_theme_constant_override("outline_size", 4)  # Thicker outline
 	
-	# Add a semi-transparent background
-	var panel = Panel.new()
-	panel.z_index = 999
-	var stylebox = StyleBoxFlat.new()
-	stylebox.bg_color = Color(0, 0, 0, 0.7)  # Semi-transparent black
-	stylebox.set_corner_radius_all(5)
-	stylebox.content_margin_left = 10
-	stylebox.content_margin_right = 10
-	stylebox.content_margin_top = 5
-	stylebox.content_margin_bottom = 5
-	panel.add_theme_stylebox_override("panel", stylebox)
-	
-	add_child(panel)
-	panel.add_child(log_label)
-	
-	log_label.z_index = 1000  # Make sure it's on top
-	
-	# Store panel reference for positioning
-	log_label.set_meta("panel", panel)
-
-func log_message(message: String):
-	log_messages.append(message)
-	
-	# Keep only the last max_log_lines messages
-	if log_messages.size() > max_log_lines:
-		log_messages.pop_front()
-	
-	# Update the label text
-	log_label.text = "\n".join(log_messages)
-	
-	# Also print to console for debugging
-	print(message)
+	create_enemy_spawn_timer()
 
 func _register_existing_pawns():
 	# Find all existing pawns in the scene
@@ -137,12 +119,12 @@ func _register_existing_houses():
 func register_pawn(pawn):
 	if pawn not in all_pawns:
 		all_pawns.append(pawn)
-		log_message("Registered pawn. Total pawns: " + str(all_pawns.size()))
+		print("Registered pawn. Total pawns: " + str(all_pawns.size()))
 
 func register_house(house):
 	if house not in all_houses:
 		all_houses.append(house)
-		log_message("Registered house. Total houses: " + str(all_houses.size()))
+		print("Registered house. Total houses: " + str(all_houses.size()))
 
 func get_available_unit_types() -> Array:
 	var available_types = ["knight"]  # Knight is always available
@@ -197,7 +179,7 @@ func check_house_availability():
 			# If no valid occupants remain, free the house
 			if house.occupants.size() == 0:
 				house.is_occupied = false
-				log_message("House became available again")
+				print("House became available again")
 
 func marry_pawns(pawn1, pawn2, house):
 	# Mark the house as occupied first
@@ -210,7 +192,7 @@ func marry_pawns(pawn1, pawn2, house):
 	var unit_type1 = available_units[randi() % available_units.size()]
 	var unit_type2 = available_units[randi() % available_units.size()]
 	
-	log_message("Transforming pawns into: " + unit_type1 + " and " + unit_type2)
+	print("Transforming pawns into: " + unit_type1 + " and " + unit_type2)
 	
 	# Calculate positions close to the house
 	var house_pos = house.global_position
@@ -228,7 +210,7 @@ func marry_pawns(pawn1, pawn2, house):
 	house.occupants.append(new_unit1)
 	house.occupants.append(new_unit2)
 	
-	log_message("Marriage complete! " + str(randi_range(2, 5)) + " children spawned")
+	print("Marriage complete! " + str(randi_range(2, 5)) + " children spawned")
 	
 	var num_children = randi_range(2, 5)
 	
@@ -306,6 +288,10 @@ func _input(event):
 				try_place_building(get_global_mouse_position())
 
 func _process(delta):
+	
+	game_time += delta
+	update_difficulty()
+	
 	# Update log position to follow camera
 	if camera and log_label:
 		var viewport_size = get_viewport_rect().size
@@ -350,7 +336,7 @@ func open_building_menu():
 	# Connect to the signal
 	menu.building_selected.connect(_on_building_selected)
 	
-	log_message("Building menu opened")
+	print("Building menu opened")
 
 func close_building_menu():
 	if active_menu:
@@ -365,13 +351,13 @@ func _on_building_selected(building_type: String):
 func start_building_mode(building_type: String):
 	building_mode = true
 	create_building_preview(building_type)
-	log_message("Building mode: " + building_type)
+	print("Building mode: " + building_type)
 
 func cancel_building_mode():
 	if building_mode:
 		building_mode = false
 		current_building_type = ""
-		log_message("Building cancelled")
+		print("Building cancelled")
 		remove_building_preview()
 
 func create_building_preview(building_type: String):
@@ -396,7 +382,7 @@ func create_building_preview(building_type: String):
 			scene_to_load = house_scene
 	
 	if scene_to_load == null:
-		log_message("ERROR: scene_to_load is null!")
+		print("ERROR: scene_to_load is null!")
 		return
 	
 	building_preview = scene_to_load.instantiate()
@@ -423,17 +409,17 @@ func try_place_building(position: Vector2):
 			"barracks":
 				building = barracks_scene.instantiate()
 				has_barracks = true  # Enable lancer
-				log_message("Barracks built! Lancers available")
+				print("Barracks built! Lancers available")
 			"mine":
 				building = mine_scene.instantiate()
 			"archery":
 				building = archery_scene.instantiate()
 				has_archery = true  # Enable archer
-				log_message("Archery built! Archers available")
+				print("Archery built! Archers available")
 			"monastry":
 				building = monastry_scene.instantiate()
 				has_monastry = true  # Enable monk
-				log_message("Monastry built! Monks available")
+				print("Monastry built! Monks available")
 			"tower":
 				building = tower_scene.instantiate()
 			"wood_tower":
@@ -449,12 +435,12 @@ func try_place_building(position: Vector2):
 		if current_building_type == "house":
 			register_house(building)
 				
-		log_message(current_building_type.capitalize() + " placed")
+		print(current_building_type.capitalize() + " placed")
 		
 		# Exit building mode after placing
 		cancel_building_mode()
 	else:
-		log_message("Invalid placement!")
+		print("Invalid placement!")
 
 func is_valid_building_position(position: Vector2) -> bool:
 	# Check bounds
@@ -487,3 +473,77 @@ func is_valid_building_position(position: Vector2) -> bool:
 				return false
 	
 	return true
+
+func create_enemy_spawn_timer():
+	enemy_spawn_timer = Timer.new()
+	add_child(enemy_spawn_timer)
+	enemy_spawn_timer.wait_time = randf_range(spawn_interval_min, spawn_interval_max)
+	enemy_spawn_timer.one_shot = false
+	enemy_spawn_timer.timeout.connect(_on_enemy_spawn_timer_timeout)
+	enemy_spawn_timer.start()
+	print("Enemy spawning enabled")
+
+func _on_enemy_spawn_timer_timeout():
+	var current_enemies = get_tree().get_nodes_in_group("enemies")
+	var difficulty_level = int(game_time / difficulty_increase_interval)
+	
+	# Spawn multiple enemies at higher difficulties
+	var enemies_to_spawn = 1 + int(difficulty_level / 3)  # 1 enemy at level 0-2, 2 at level 3-5, etc.
+	
+	for i in range(enemies_to_spawn):
+		if current_enemies.size() < max_enemies:
+			spawn_random_enemy()
+			current_enemies = get_tree().get_nodes_in_group("enemies")  # Update count
+			await get_tree().create_timer(0.3).timeout  # Small delay between spawns
+	
+	var base_wait = randf_range(spawn_interval_min, spawn_interval_max)
+	enemy_spawn_timer.wait_time = base_wait * spawn_rate_multiplier
+
+func spawn_random_enemy():
+	var goblin = goblin_torch_scene.instantiate()
+	var spawn_pos = get_random_edge_position()
+	goblin.global_position = spawn_pos
+	
+	# Set castle position for the goblin
+	goblin.castle_position = castle_position
+	
+	add_child(goblin)
+	print("Goblin spawned!")
+
+func get_random_edge_position() -> Vector2:
+	var edge = randi() % 4
+	var pos = Vector2.ZERO
+	
+	match edge:
+		0:  # Top
+			pos = Vector2(
+				randf_range(spawn_distance_from_edge, background_width - spawn_distance_from_edge),
+				spawn_distance_from_edge
+			)
+		1:  # Right
+			pos = Vector2(
+				background_width - spawn_distance_from_edge,
+				randf_range(spawn_distance_from_edge, background_height - spawn_distance_from_edge)
+			)
+		2:  # Bottom
+			pos = Vector2(
+				randf_range(spawn_distance_from_edge, background_width - spawn_distance_from_edge),
+				background_height - spawn_distance_from_edge
+			)
+		3:  # Left
+			pos = Vector2(
+				spawn_distance_from_edge,
+				randf_range(spawn_distance_from_edge, background_height - spawn_distance_from_edge)
+			)
+	
+	return pos
+
+func update_difficulty():
+	# Calculate current difficulty level (every 60 seconds)
+	var difficulty_level = int(game_time / difficulty_increase_interval)
+	
+	# Update spawn rate multiplier (spawns get faster)
+	spawn_rate_multiplier = 1.0 / (1.0 + (difficulty_level * 0.15))  # 15% faster each level
+	
+	# Update max enemies (more enemies can exist at once)
+	max_enemies = 20 + (difficulty_level * max_enemies_increase)

@@ -1,6 +1,7 @@
-[gd_scene load_steps=23 format=3 uid="uid://chd0q4tj38sds"]
+[gd_scene load_steps=24 format=3 uid="uid://chd0q4tj38sds"]
 
-[ext_resource type="Texture2D" uid="uid://d4inqlq86j54m" path="res://Units/Red Units/Torch_Goblin/Torch_Red.png" id="1_xfbel"]
+[ext_resource type="Texture2D" uid="uid://d4inqlq86j54m" path="res://assets/Units/Red Units/Torch_Goblin/Torch_Red.png" id="1_xfbel"]
+[ext_resource type="Script" uid="uid://bxmkq7lukwu5l" path="res://scripts/units/goblin_torch.gd" id="2_6c78m"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_kq40x"]
 atlas = ExtResource("1_xfbel")
@@ -158,12 +159,14 @@ radius = 18.0
 height = 64.0
 
 [node name="GoblinTorch" type="StaticBody2D"]
+script = ExtResource("2_6c78m")
 
 [node name="GoblinTorchSprite" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_qh5tp")
 animation = &"attack"
 autoplay = "idle"
-frame_progress = 0.1504857
+frame = 2
+frame_progress = 0.34657976
 
 [node name="GoblinTorchCollision" type="CollisionShape2D" parent="."]
 position = Vector2(-1, 5)
