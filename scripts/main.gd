@@ -59,6 +59,9 @@ var spawn_interval_max: float = 25.0
 var spawn_distance_from_edge: float = 100.0
 var max_enemies: int = 20  # Limit total enemies
 
+# Child spawning settings
+@export var child_spawn_interval: float = 1.0  # Time between each child spawn
+
 # Difficulty scaling
 var game_time: float = 0.0
 var difficulty_increase_interval: float = 60.0  # Increase difficulty every 60 seconds
@@ -75,6 +78,10 @@ var game_over_label: Label = null
 
 # Camera reference
 var camera: Camera2D
+
+# NEW: Marriage queue system
+var pending_marriages: Array = []  # Array of {pawn1, pawn2, house}
+var marriage_arrival_check_timer: Timer
 
 func _ready():
 	
@@ -103,6 +110,13 @@ func _ready():
 	marriage_check_timer.wait_time = 2.0  # Check every 2 seconds
 	marriage_check_timer.timeout.connect(_check_for_marriages)
 	marriage_check_timer.start()
+	
+	# NEW: Create timer to check if pawns have arrived at houses
+	marriage_arrival_check_timer = Timer.new()
+	add_child(marriage_arrival_check_timer)
+	marriage_arrival_check_timer.wait_time = 0.5  # Check every 0.5 seconds
+	marriage_arrival_check_timer.timeout.connect(_check_marriage_arrivals)
+	marriage_arrival_check_timer.start()
 	
 	# Add existing pawns to the list
 	call_deferred("_register_existing_pawns")
@@ -150,25 +164,41 @@ func _check_for_marriages():
 	# Check if houses should become available again
 	check_house_availability()
 	
-	# Find all single pawns
+	# Find all single pawns that are not already in a pending marriage
 	var single_pawns = []
 	for pawn in all_pawns:
 		if is_instance_valid(pawn) and pawn.type == "Single":
-			single_pawns.append(pawn)
+			# Check if this pawn is already in a pending marriage
+			var already_pending = false
+			for marriage_data in pending_marriages:
+				if marriage_data.pawn1 == pawn or marriage_data.pawn2 == pawn:
+					already_pending = true
+					break
+			
+			if not already_pending:
+				single_pawns.append(pawn)
 	
 	# Find all empty houses
 	var empty_houses = []
 	for house in all_houses:
 		if is_instance_valid(house) and not house.is_occupied:
-			empty_houses.append(house)
+			# Check if this house is already assigned to a pending marriage
+			var already_assigned = false
+			for marriage_data in pending_marriages:
+				if marriage_data.house == house:
+					already_assigned = true
+					break
+			
+			if not already_assigned:
+				empty_houses.append(house)
 	
-	# Match single pawns with empty houses
+	# Match single pawns with empty houses and initiate marriage journey
 	while single_pawns.size() >= 2 and empty_houses.size() > 0:
 		var pawn1 = single_pawns.pop_front()
 		var pawn2 = single_pawns.pop_front()
 		var house = empty_houses.pop_front()
 		
-		marry_pawns(pawn1, pawn2, house)
+		initiate_marriage_journey(pawn1, pawn2, house)
 
 # New function to check house availability
 func check_house_availability():
@@ -187,9 +217,110 @@ func check_house_availability():
 				house.is_occupied = false
 				print("House became available again")
 
-func marry_pawns(pawn1, pawn2, house):
-	# Mark the house as occupied first
+# NEW: Function to initiate the marriage journey
+func initiate_marriage_journey(pawn1, pawn2, house):
+	print("Marriage journey initiated! Pawns heading to house...")
+	
+	# Mark the house as reserved (but not occupied yet)
+	# This prevents other pawns from claiming it
+	var marriage_data = {
+		"pawn1": pawn1,
+		"pawn2": pawn2,
+		"house": house,
+		"initiated_at": Time.get_ticks_msec()
+	}
+	pending_marriages.append(marriage_data)
+	
+	# Set both pawns to walk towards the house
+	# Set their center_position to the house location
+	pawn1.center_position = house.global_position
+	pawn1.target_position = house.global_position
+	pawn1.is_moving = true
+	pawn1.is_idle = false
+	
+	pawn2.center_position = house.global_position
+	pawn2.target_position = house.global_position
+	pawn2.is_moving = true
+	pawn2.is_idle = false
+
+# NEW: Check if pawns have arrived at their houses
+func _check_marriage_arrivals():
+	var marriages_to_complete = []
+	
+	for i in range(pending_marriages.size() - 1, -1, -1):
+		var marriage_data = pending_marriages[i]
+		var pawn1 = marriage_data.pawn1
+		var pawn2 = marriage_data.pawn2
+		var house = marriage_data.house
+		
+		# Validate all participants still exist
+		if not is_instance_valid(pawn1) or not is_instance_valid(pawn2) or not is_instance_valid(house):
+			print("Marriage cancelled - participant no longer valid")
+			pending_marriages.remove_at(i)
+			continue
+		
+		# Check if pawns are fighting (have enemy_target)
+		var pawn1_fighting = false
+		var pawn2_fighting = false
+		
+		if "enemy_target" in pawn1 and pawn1.enemy_target != null and is_instance_valid(pawn1.enemy_target):
+			pawn1_fighting = true
+		if "enemy_target" in pawn2 and pawn2.enemy_target != null and is_instance_valid(pawn2.enemy_target):
+			pawn2_fighting = true
+		
+		# Check if house is under attack
+		var house_under_attack = is_house_under_attack(house)
+		
+		# If anyone is fighting or house is under attack, delay the marriage
+		if pawn1_fighting or pawn2_fighting or house_under_attack:
+			# Optionally, we could cancel after a certain timeout
+			var time_elapsed = (Time.get_ticks_msec() - marriage_data.initiated_at) / 1000.0
+			if time_elapsed > 60.0:  # Cancel if waiting more than 60 seconds
+				print("Marriage cancelled - took too long (combat)")
+				pending_marriages.remove_at(i)
+			continue
+		
+		# Check if both pawns are close to the house
+		var distance1 = pawn1.global_position.distance_to(house.global_position)
+		var distance2 = pawn2.global_position.distance_to(house.global_position)
+		var arrival_threshold = 50.0  # Distance considered "arrived"
+		
+		if distance1 <= arrival_threshold and distance2 <= arrival_threshold:
+			# Both pawns have arrived! Complete the marriage
+			marriages_to_complete.append(marriage_data)
+			pending_marriages.remove_at(i)
+	
+	# Complete all ready marriages
+	for marriage_data in marriages_to_complete:
+		complete_marriage(marriage_data.pawn1, marriage_data.pawn2, marriage_data.house)
+
+# NEW: Check if a house is currently under attack
+func is_house_under_attack(house) -> bool:
+	# Get all enemies
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		
+		# Check if enemy is targeting this house
+		if "target_unit" in enemy and enemy.target_unit == house:
+			return true
+		
+		# Check if enemy is very close to the house (within attack range)
+		var distance = enemy.global_position.distance_to(house.global_position)
+		var threat_range = 100.0  # Consider house threatened if enemy within this range
+		if distance <= threat_range:
+			return true
+	
+	return false
+
+# NEW: Complete the marriage (this replaces the old marry_pawns function)
+func complete_marriage(pawn1, pawn2, house):
+	# Mark the house as occupied
 	house.is_occupied = true
+	
+	print("Marriage ceremony starting!")
 	
 	# Get available unit types based on buildings
 	var available_units = get_available_unit_types()
@@ -216,13 +347,44 @@ func marry_pawns(pawn1, pawn2, house):
 	house.occupants.append(new_unit1)
 	house.occupants.append(new_unit2)
 	
-	print("Marriage complete! " + str(randi_range(2, 5)) + " children spawned")
-	
+	# Determine number of children
 	var num_children = randi_range(2, 5)
+	print("Marriage complete! " + str(num_children) + " children will be born")
 	
-	# Spawn children around the house
+	# Start the child spawning process (async)
+	spawn_children_over_time(house, num_children)
+
+# NEW: Spawn children one by one with delays
+func spawn_children_over_time(house, num_children: int):
 	for i in range(num_children):
+		# Check if house still exists
+		if not is_instance_valid(house):
+			print("Child spawning interrupted - house destroyed")
+			return
+		
+		# Check if house is under attack
+		if is_house_under_attack(house):
+			print("Child spawning paused - house under attack!")
+			# Wait until house is no longer under attack
+			while is_house_under_attack(house) and is_instance_valid(house):
+				await get_tree().create_timer(0.5).timeout
+			
+			# Check again if house still exists after waiting
+			if not is_instance_valid(house):
+				print("Child spawning interrupted - house destroyed during attack")
+				return
+			
+			print("House safe again - resuming child spawning")
+		
+		# Spawn the child
 		spawn_baby_pawn(house.global_position, house)
+		print("Child " + str(i + 1) + "/" + str(num_children) + " born!")
+		
+		# Wait before spawning next child (unless it's the last one)
+		if i < num_children - 1:
+			await get_tree().create_timer(child_spawn_interval).timeout
+	
+	print("All " + str(num_children) + " children have been born!")
 
 func transform_pawn_to_unit(old_pawn, unit_type: String, house, position: Vector2):
 	# Remove old pawn from tracking (important!)
@@ -555,6 +717,10 @@ func _on_castle_destroyed():
 	# Stop marriage checking
 	if marriage_check_timer:
 		marriage_check_timer.stop()
+	
+	# Stop marriage arrival checking
+	if marriage_arrival_check_timer:
+		marriage_arrival_check_timer.stop()
 	
 	# Show game over screen
 	show_game_over_screen()
