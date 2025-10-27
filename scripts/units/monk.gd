@@ -27,13 +27,13 @@ func start_as_trainee():
 	is_in_training = true
 	
 	# Trainee stats - weaker
-	health = 70
-	max_health = 70
+	health = 75
+	max_health = 75
 	attack_damage = 8
-	movement_speed = 45.0
-	attack_range = 45.0
-	detection_range = 200.0
-	attack_cooldown = 1.8
+	movement_speed = 25.0
+	attack_range = 25.0
+	detection_range = 250.0
+	attack_cooldown = 3.0
 	
 	# Start at smaller scale
 	if animated_sprite:
@@ -54,16 +54,16 @@ func start_as_trained():
 	is_in_training = false
 	
 	# Full Monk stats - healer/support with decent health
-	health = 100
-	max_health = 100
-	attack_damage = 12
+	health = 150
+	max_health = 150
+	attack_damage = 15
 	movement_speed = 50.0
 	attack_range = 50.0
-	detection_range = 250.0
+	detection_range = 500.0
 	attack_cooldown = 1.5
 	
-	lifespan_min = 90.0
-	lifespan_max = 130.0
+	lifespan_min = 200.0
+	lifespan_max = 300.0
 	
 	# Full scale
 	if animated_sprite:
@@ -114,17 +114,17 @@ func complete_training():
 	has_arrived_at_training = false
 	training_building = null
 	
-	# Upgrade to full stats
-	health = 100
-	max_health = 100
-	attack_damage = 12
+	# Full Monk stats - healer/support with decent health
+	health = 150
+	max_health = 150
+	attack_damage = 15
 	movement_speed = 50.0
 	attack_range = 50.0
-	detection_range = 250.0
+	detection_range = 500.0
 	attack_cooldown = 1.5
 	
-	lifespan_min = 90.0
-	lifespan_max = 130.0
+	lifespan_min = 200.0
+	lifespan_max = 300.0
 	
 	# Scale up to full size
 	if animated_sprite:

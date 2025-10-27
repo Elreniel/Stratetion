@@ -28,8 +28,8 @@ func arrange_buttons_in_circle():
 		buttons.append(get_node("MonastryButton"))
 	if has_node("TowerButton"):
 		buttons.append(get_node("TowerButton"))
-	if has_node("WoodTowerButton"):
-		buttons.append(get_node("WoodTowerButton"))
+#	if has_node("WoodTowerButton"):
+#		buttons.append(get_node("WoodTowerButton"))
 	
 	if buttons.is_empty():
 		print("ERROR: No buttons found!")

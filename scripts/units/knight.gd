@@ -13,13 +13,13 @@ func _ready():
 	health = 150
 	max_health = 150
 	attack_damage = 25
-	movement_speed = 40.0
+	movement_speed = 50.0
 	attack_range = 50.0
-	detection_range = 250.0
-	attack_cooldown = 1.2
+	detection_range = 500.0
+	attack_cooldown = 1.5
 	
-	lifespan_min = 80.0
-	lifespan_max = 120.0
+	lifespan_min = 200.0
+	lifespan_max = 300.0
 	
 	center_position = global_position
 	

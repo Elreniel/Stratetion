@@ -30,10 +30,10 @@ func start_as_trainee():
 	health = 50
 	max_health = 50
 	attack_damage = 10
-	movement_speed = 55.0
-	attack_range = 80.0
-	detection_range = 250.0
-	attack_cooldown = 1.2
+	movement_speed = 25.0
+	attack_range = 100.0
+	detection_range = 150.0
+	attack_cooldown = 2.0
 	
 	# Start at smaller scale
 	if animated_sprite:
@@ -54,16 +54,16 @@ func start_as_trained():
 	is_in_training = false
 	
 	# Full Archer stats - long range, fast attacks
-	health = 70
-	max_health = 70
-	attack_damage = 15
-	movement_speed = 60.0
-	attack_range = 100.0
-	detection_range = 300.0
-	attack_cooldown = 0.8
+	health = 100
+	max_health = 100
+	attack_damage = 20
+	movement_speed = 50.0
+	attack_range = 250.0
+	detection_range = 1000.0
+	attack_cooldown = 1.0
 	
-	lifespan_min = 60.0
-	lifespan_max = 90.0
+	lifespan_min = 200.0
+	lifespan_max = 300.0
 	
 	# Full scale
 	if animated_sprite:
@@ -114,17 +114,17 @@ func complete_training():
 	has_arrived_at_training = false
 	training_building = null
 	
-	# Upgrade to full stats
-	health = 70
-	max_health = 70
-	attack_damage = 15
-	movement_speed = 60.0
-	attack_range = 100.0
-	detection_range = 300.0
-	attack_cooldown = 0.8
+	# Full Archer stats - long range, fast attacks
+	health = 100
+	max_health = 100
+	attack_damage = 20
+	movement_speed = 50.0
+	attack_range = 250.0
+	detection_range = 1000.0
+	attack_cooldown = 1.0
 	
-	lifespan_min = 60.0
-	lifespan_max = 90.0
+	lifespan_min = 200.0
+	lifespan_max = 300.0
 	
 	# Scale up to full size
 	if animated_sprite:

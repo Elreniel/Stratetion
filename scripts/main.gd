@@ -480,7 +480,7 @@ func complete_marriage(pawn1, pawn2, house):
 	units_waiting_for_children.append(trainee2)
 	
 	# Determine number of children
-	var num_children = randi_range(2, 5)
+	var num_children = randi_range(3, 5)
 	print("Marriage complete! " + str(num_children) + " children will be born")
 	
 	# Start the child spawning process (async)

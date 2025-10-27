@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://t8d55hi835bi"]
 
-[ext_resource type="Script" uid="uid://dl2sww3ggrft1" path="res://scripts/building_menu.gd" id="1_updix"]
+[ext_resource type="Script" uid="uid://dl2sww3ggrft1" path="res://scripts/ui/building_menu.gd" id="1_updix"]
 
 [node name="BuildingMenu" type="Control"]
 layout_mode = 3
@@ -52,10 +52,3 @@ layout_mode = 0
 offset_right = 8.0
 offset_bottom = 8.0
 text = "Tower"
-
-[node name="WoodTowerButton" type="Button" parent="."]
-custom_minimum_size = Vector2(80, 80)
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
-text = "Wood Tower"

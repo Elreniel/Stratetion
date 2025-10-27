@@ -7,16 +7,16 @@ func _ready():
 	
 	# Goblin stats
 	type = "Goblin"
-	health = 150
-	max_health = 150
-	attack_damage = 25
-	movement_speed = 40.0
-	attack_range = 40.0
-	detection_range = 300.0
+	health = 75
+	max_health = 75
+	attack_damage = 15
+	movement_speed = 50.0
+	attack_range = 50.0
+	detection_range = 250.0
 	attack_cooldown = 1.5
 	
-	lifespan_min = 120.0
-	lifespan_max = 180.0
+	lifespan_min = 200.0
+	lifespan_max = 300.0
 	
 	# Add to goblin-specific group
 	add_to_group("goblins")

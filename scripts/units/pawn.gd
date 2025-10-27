@@ -11,16 +11,18 @@ func _ready():
 	type = "Baby"
 	
 	# Pawn stats - weak
-	health = 80
-	max_health = 80
+	health = 35
+	max_health = 35
 	attack_damage = 5
-	movement_speed = 50.0
-	attack_range = 40.0
-	detection_range = 150.0
-	attack_cooldown = 2.0
+	movement_speed = 25.0
+	attack_range = 15.0
+	detection_range = 50.0
+	attack_cooldown = 4.0
 	
-	lifespan_min = 100.0
-	lifespan_max = 150.0
+	circle_radius = 50.0
+	
+	lifespan_min = 200.0
+	lifespan_max = 300.0
 	
 	# Connect pawn-specific signals
 	baby_timer.timeout.connect(_on_baby_timer_timeout)
@@ -45,5 +47,10 @@ func _on_baby_timer_timeout() -> void:
 	type = "Single"
 	animated_pawn.scale = Vector2(1, 1)
 	collision_shape_2d.scale = Vector2(1, 1)
-	health = 100
+	health = 75
+	max_health = 75
 	attack_damage = 10
+	movement_speed = 50.0
+	attack_range = 30.0
+	detection_range = 100.0
+	attack_cooldown = 2.0

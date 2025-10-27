@@ -27,13 +27,13 @@ func start_as_trainee():
 	is_in_training = true
 	
 	# Trainee stats - weaker
-	health = 80
-	max_health = 80
-	attack_damage = 12
-	movement_speed = 50.0
-	attack_range = 60.0
-	detection_range = 180.0
-	attack_cooldown = 2.0
+	health = 75
+	max_health = 75
+	attack_damage = 15
+	movement_speed = 25.0
+	attack_range = 35.0
+	detection_range = 125.0
+	attack_cooldown = 2.4
 	
 	# Start at smaller scale
 	if animated_sprite:
@@ -54,16 +54,16 @@ func start_as_trained():
 	is_in_training = false
 	
 	# Full Lancer stats
-	health = 110
-	max_health = 110
-	attack_damage = 20
-	movement_speed = 55.0
-	attack_range = 70.0
-	detection_range = 220.0
-	attack_cooldown = 1.5
+	health = 150
+	max_health = 150
+	attack_damage = 30
+	movement_speed = 50.0
+	attack_range = 75.0
+	detection_range = 250.0
+	attack_cooldown = 1.2
 	
-	lifespan_min = 70.0
-	lifespan_max = 100.0
+	lifespan_min = 200.0
+	lifespan_max = 300.0
 	
 	# Full scale
 	if animated_sprite:
@@ -114,17 +114,17 @@ func complete_training():
 	has_arrived_at_training = false
 	training_building = null
 	
-	# Upgrade to full stats
-	health = 110
-	max_health = 110
-	attack_damage = 20
-	movement_speed = 55.0
-	attack_range = 70.0
-	detection_range = 220.0
-	attack_cooldown = 1.5
+	# Full Lancer stats
+	health = 150
+	max_health = 150
+	attack_damage = 30
+	movement_speed = 50.0
+	attack_range = 75.0
+	detection_range = 500.0
+	attack_cooldown = 1.2
 	
-	lifespan_min = 70.0
-	lifespan_max = 100.0
+	lifespan_min = 200.0
+	lifespan_max = 300.0
 	
 	# Scale up to full size
 	if animated_sprite:
