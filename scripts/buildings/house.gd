@@ -3,7 +3,7 @@ extends Building
 func _ready():
 	building_type = "House"
 	type = "House"
-	max_occupants = 2
+	max_occupants = 10
 	health = 150
 	max_health = 150
 	
