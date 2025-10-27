@@ -1,157 +1,171 @@
 extends Unit
 
-var heal_amount: int = 30
-var heal_range: float = 80.0
-var heal_cooldown_time: float = 5.0
-var can_heal: bool = true
-var heal_timer: Timer = null
-
-var ally_target = null
+# Training state
+var is_in_training: bool = false
+var training_building = null
+var training_start_time: float = 0.0
+var training_duration: float = 30.0
+var has_arrived_at_training: bool = false
 
 func _ready():
 	animated_sprite = $MonkSprite
-	collision_shape = $CollisionShape2D
+	collision_shape = $MonkCollision
 	
 	type = "Monk"
 	
-	# Monk stats - support, healing
-	health = 90
-	max_health = 90
-	attack_damage = 8  # Lower damage since they're support
-	movement_speed = 50.0
-	attack_range = 45.0
-	detection_range = 180.0
-	attack_cooldown = 2.5
-	
-	lifespan_min = 100.0
-	lifespan_max = 150.0
+	# Check if starting in training mode
+	if has_meta("in_training"):
+		start_as_trainee()
+	else:
+		start_as_trained()
 	
 	center_position = global_position
 	
-	# Create heal timer
-	create_heal_timer()
-	
 	super._ready()
 
-func create_heal_timer():
-	heal_timer = Timer.new()
-	add_child(heal_timer)
-	heal_timer.wait_time = heal_cooldown_time
-	heal_timer.one_shot = true
-	heal_timer.timeout.connect(_on_heal_cooldown_finished)
-
-func _on_heal_cooldown_finished():
-	can_heal = true
-
-# Override the physics process to prioritize healing
-func _physics_process(delta):
-	# Priority 1: Healing allies
-	if can_heal:
-		var injured_ally = find_injured_ally()
-		if injured_ally:
-			heal_ally(injured_ally, delta)
-			return
+func start_as_trainee():
+	is_in_training = true
 	
-	# Priority 2: Combat with enemies
-	if enemy_target and is_instance_valid(enemy_target):
-		handle_combat(delta)
-		return
+	# Trainee stats - weaker
+	health = 70
+	max_health = 70
+	attack_damage = 8
+	movement_speed = 45.0
+	attack_range = 45.0
+	detection_range = 200.0
+	attack_cooldown = 1.8
 	
-	# Priority 3: Normal movement
-	if is_moving and not is_attacking:
-		var direction = (target_position - global_position).normalized()
-		var distance = global_position.distance_to(target_position)
-		
-		if distance > 5:
-			global_position += direction * movement_speed * delta
-			
-			if animated_sprite:
-				if direction.x < 0:
-					animated_sprite.flip_h = true
-				else:
-					animated_sprite.flip_h = false
-		else:
-			start_idle()
-
-func find_injured_ally() -> Node:
-	var all_units = get_tree().get_nodes_in_group("units")
-	var most_injured = null
-	var lowest_health_percent = 1.0
-	
-	for unit in all_units:
-		if is_instance_valid(unit) and unit != self:
-			# Use max_health if available
-			var max_hp = unit.max_health if "max_health" in unit else 100
-			var health_percent = float(unit.health) / float(max_hp)
-			
-			# Find units below 70% health
-			if health_percent < 0.7:
-				var distance = global_position.distance_to(unit.global_position)
-				if distance <= heal_range and health_percent < lowest_health_percent:
-					lowest_health_percent = health_percent
-					most_injured = unit
-	
-	return most_injured
-
-func perform_heal(target):
-	if not can_heal:
-		return
-	
-	can_heal = false
-	
-	if animated_sprite and animated_sprite.sprite_frames.has_animation("heal"):
-		animated_sprite.play("heal")
-	elif animated_sprite:
-		animated_sprite.play("attack")
-	
-	# Use max_health if available
-	var max_hp = target.max_health if "max_health" in target else 150
-	target.health = min(target.health + heal_amount, max_hp)
-	
-	print(type + " heals " + target.type + " for " + str(heal_amount) + " HP! (Now: " + str(target.health) + "/" + str(max_hp) + ")")
-	
-	# Visual feedback - green flash
-	if target.animated_sprite:
-		target.animated_sprite.modulate = Color(0.5, 1.5, 0.5)
-		await get_tree().create_timer(0.3).timeout
-		target.animated_sprite.modulate = Color(1, 1, 1)
-	
-	heal_timer.start()
-	
-func heal_ally(ally, delta):
-	var distance = global_position.distance_to(ally.global_position)
-	
-	# Ally too far, forget it
-	if distance > heal_range * 1.5:
-		ally_target = null
-		return
-	
-	# Move toward ally
-	if distance > heal_range * 0.5:  # Get close to heal
-		var direction = (ally.global_position - global_position).normalized()
-		global_position += direction * movement_speed * delta
-		
-		# Flip sprite
-		if animated_sprite:
-			if direction.x < 0:
-				animated_sprite.flip_h = true
-			else:
-				animated_sprite.flip_h = false
-			
-			if animated_sprite.sprite_frames.has_animation("walk"):
-				animated_sprite.play("walk")
-	else:
-		# Close enough to heal
-		perform_heal(ally)
-
-func special_ability():
-	# Heal self
-	print("Monk uses Healing Prayer on self!")
-	health = min(health + heal_amount, 90)
-	print("Monk healed! Current health: " + str(health))
-	
-	# Visual feedback
+	# Start at smaller scale
 	if animated_sprite:
-		animated_sprite.modulate = Color(0.5, 1.5, 0.5)
-		await get_tree().create_timer(0.3).timeout
-		animated_sprite.modulate = Color(1, 1, 1)
+		animated_sprite.scale = Vector2(0.7, 0.7)
+	if collision_shape:
+		collision_shape.scale = Vector2(0.7, 0.7)
+	
+	# Get training building from metadata
+	if has_meta("training_building"):
+		training_building = get_meta("training_building")
+		print("Monk trainee created - heading to Monastery")
+	
+	# Longer lifespan during training
+	lifespan_min = 200.0
+	lifespan_max = 300.0
+
+func start_as_trained():
+	is_in_training = false
+	
+	# Full Monk stats - healer/support with decent health
+	health = 100
+	max_health = 100
+	attack_damage = 12
+	movement_speed = 50.0
+	attack_range = 50.0
+	detection_range = 250.0
+	attack_cooldown = 1.5
+	
+	lifespan_min = 90.0
+	lifespan_max = 130.0
+	
+	# Full scale
+	if animated_sprite:
+		animated_sprite.scale = Vector2(1.0, 1.0)
+	if collision_shape:
+		collision_shape.scale = Vector2(1.0, 1.0)
+	
+	print("Trained Monk ready for battle!")
+
+func _physics_process(delta):
+	# If in training, handle training logic
+	if is_in_training:
+		handle_training(delta)
+	
+	# Call parent physics process
+	super._physics_process(delta)
+
+func handle_training(delta):
+	# Check if training building still exists
+	if not is_instance_valid(training_building):
+		print("Training building destroyed! Monk completes emergency training.")
+		complete_training()
+		return
+	
+	# Check if arrived at training building
+	if not has_arrived_at_training:
+		var distance = global_position.distance_to(training_building.global_position)
+		if distance <= 100.0:
+			print("Monk arrived at Monastery - training begins!")
+			has_arrived_at_training = true
+			training_start_time = Time.get_ticks_msec() / 1000.0
+			
+			# Set to wander around the building (stay at trainee size)
+			center_position = training_building.global_position
+			circle_radius = 100.0
+			pick_random_target()
+	else:
+		# Training in progress - check if complete
+		var current_time = Time.get_ticks_msec() / 1000.0
+		var elapsed_time = current_time - training_start_time
+		
+		if elapsed_time >= training_duration:
+			print("Monk training complete!")
+			complete_training()
+
+func complete_training():
+	is_in_training = false
+	has_arrived_at_training = false
+	training_building = null
+	
+	# Upgrade to full stats
+	health = 100
+	max_health = 100
+	attack_damage = 12
+	movement_speed = 50.0
+	attack_range = 50.0
+	detection_range = 250.0
+	attack_cooldown = 1.5
+	
+	lifespan_min = 90.0
+	lifespan_max = 130.0
+	
+	# Scale up to full size
+	if animated_sprite:
+		animated_sprite.scale = Vector2(1.0, 1.0)
+	if collision_shape:
+		collision_shape.scale = Vector2(1.0, 1.0)
+	
+	# Reset lifespan timer with new values
+	if lifespan_timer:
+		lifespan_timer.stop()
+	create_lifespan_timer()
+	
+	# Set patrol area to entire city
+	set_city_patrol_area()
+	
+	print("Monk is now fully trained and ready for combat!")
+
+func set_city_patrol_area():
+	# Get city borders from main
+	var main = get_parent()
+	if main and main.has_method("get_city_patrol_position"):
+		if main.city_initialized:
+			# Set patrol area to city borders
+			center_position = main.city_center
+			circle_radius = max(
+				main.city_border_right - main.city_border_left,
+				main.city_border_bottom - main.city_border_top
+			) / 2.0
+			
+			print("Monk patrolling city - Center: " + str(center_position) + " Radius: " + str(circle_radius))
+			
+			# Pick first patrol target
+			pick_random_target()
+		else:
+			# City not initialized yet, use home position
+			if home and is_instance_valid(home):
+				center_position = home.global_position
+				circle_radius = 200.0
+			print("City not initialized, patrolling around home")
+	else:
+		# Fallback to home position
+		if home and is_instance_valid(home):
+			center_position = home.global_position
+			circle_radius = 200.0

@@ -100,6 +100,6 @@ animation = &"idle"
 autoplay = "idle"
 frame_progress = 0.5904135
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="MonkCollision" type="CollisionShape2D" parent="."]
 position = Vector2(0, 2)
 shape = SubResource("CapsuleShape2D_d2mo3")

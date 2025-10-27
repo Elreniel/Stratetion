@@ -102,6 +102,10 @@ func _on_mouse_exited():
 func on_interact():
 	print("You clicked on " + type + "!")
 
+# NEW: Check if this unit is waiting for children
+func is_waiting_for_children() -> bool:
+	return has_meta("waiting_for_children") and get_meta("waiting_for_children") == true
+
 # Combat
 func take_damage(amount: int):
 	health -= amount
@@ -185,7 +189,7 @@ func _check_for_enemies():
 
 # Movement & AI
 func _physics_process(delta):
-	# Priority 1: Combat
+	# Priority 1: Combat (can still fight even while waiting for children)
 	if enemy_target and is_instance_valid(enemy_target):
 		handle_combat(delta)
 		return
@@ -194,7 +198,15 @@ func _physics_process(delta):
 	if is_attacking:
 		is_attacking = false
 	
-	# Priority 2: Normal movement
+	# NEW: Check if unit is waiting for children - if so, stay in place
+	if is_waiting_for_children():
+		# Stay idle, don't wander
+		if animated_sprite and animated_sprite.sprite_frames.has_animation("idle"):
+			animated_sprite.play("idle")
+		is_moving = false
+		return
+	
+	# Priority 2: Normal movement (only if not waiting for children)
 	if is_moving and not is_attacking:
 		var direction = (target_position - global_position).normalized()
 		var distance = global_position.distance_to(target_position)
@@ -253,6 +265,10 @@ func handle_combat(delta):
 			attack_target(enemy_target)
 
 func pick_random_target():
+	# NEW: Don't pick new targets if waiting for children
+	if is_waiting_for_children():
+		return
+	
 	var random_angle = randf() * TAU
 	var random_distance = randf() * circle_radius
 	
@@ -268,6 +284,12 @@ func pick_random_target():
 		animated_sprite.play("walk")
 
 func start_idle():
+	# NEW: Don't start idle wandering if waiting for children
+	if is_waiting_for_children():
+		if animated_sprite:
+			animated_sprite.play("idle")
+		return
+	
 	is_idle = true
 	is_moving = false
 	

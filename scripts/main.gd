@@ -51,6 +51,17 @@ var has_barracks: bool = false
 var has_archery: bool = false
 var has_monastry: bool = false
 
+# City border tracking
+var city_border_left: float = 0.0
+var city_border_right: float = 0.0
+var city_border_top: float = 0.0
+var city_border_bottom: float = 0.0
+var city_center: Vector2 = Vector2.ZERO
+var city_initialized: bool = false
+
+# Track all buildings for city border calculation
+var all_buildings: Array = []
+
 var castle_position: Vector2 = Vector2.ZERO
 
 var enemy_spawn_timer: Timer = null
@@ -61,6 +72,17 @@ var max_enemies: int = 20  # Limit total enemies
 
 # Child spawning settings
 @export var child_spawn_interval: float = 1.0  # Time between each child spawn
+
+# Training settings
+@export var training_duration: float = 30.0  # Time units spend training at their building
+
+# Track units waiting for children
+var units_waiting_for_children: Array = []
+
+# Building tracking
+var all_barracks: Array = []
+var all_archeries: Array = []
+var all_monasteries: Array = []
 
 # Difficulty scaling
 var game_time: float = 0.0
@@ -114,13 +136,15 @@ func _ready():
 	# NEW: Create timer to check if pawns have arrived at houses
 	marriage_arrival_check_timer = Timer.new()
 	add_child(marriage_arrival_check_timer)
-	marriage_arrival_check_timer.wait_time = 0.5  # Check every 0.5 seconds
+	marriage_arrival_check_timer.wait_time = 0.1  # Check every 0.1 seconds for faster response
 	marriage_arrival_check_timer.timeout.connect(_check_marriage_arrivals)
 	marriage_arrival_check_timer.start()
 	
 	# Add existing pawns to the list
 	call_deferred("_register_existing_pawns")
 	call_deferred("_register_existing_houses")
+	call_deferred("_register_existing_training_buildings")
+	call_deferred("_register_existing_buildings")
 	
 	create_enemy_spawn_timer()
 
@@ -136,6 +160,18 @@ func _register_existing_houses():
 		if child.is_in_group("houses"):
 			register_house(child)
 
+func _register_existing_training_buildings():
+	# Find all existing training buildings in the scene
+	for child in get_children():
+		if child.is_in_group("barracks") or child.is_in_group("archery") or child.is_in_group("monastry"):
+			register_training_building(child)
+
+func _register_existing_buildings():
+	# Find all existing buildings and calculate city borders
+	for child in get_children():
+		if child.is_in_group("buildings"):
+			register_building(child)
+
 func register_pawn(pawn):
 	if pawn not in all_pawns:
 		all_pawns.append(pawn)
@@ -145,6 +181,87 @@ func register_house(house):
 	if house not in all_houses:
 		all_houses.append(house)
 		print("Registered house. Total houses: " + str(all_houses.size()))
+
+func register_training_building(building):
+	if building.is_in_group("barracks") and building not in all_barracks:
+		all_barracks.append(building)
+		print("Registered barracks. Total: " + str(all_barracks.size()))
+	elif building.is_in_group("archery") and building not in all_archeries:
+		all_archeries.append(building)
+		print("Registered archery. Total: " + str(all_archeries.size()))
+	elif building.is_in_group("monastry") and building not in all_monasteries:
+		all_monasteries.append(building)
+		print("Registered monastery. Total: " + str(all_monasteries.size()))
+
+func register_building(building):
+	# Register building for city border calculation
+	if building not in all_buildings:
+		all_buildings.append(building)
+		calculate_city_borders()
+		print("Building registered. Total buildings: " + str(all_buildings.size()))
+
+func calculate_city_borders():
+	if all_buildings.size() == 0:
+		return
+	
+	# Start with first building position
+	var first_building = all_buildings[0]
+	city_border_left = first_building.global_position.x
+	city_border_right = first_building.global_position.x
+	city_border_top = first_building.global_position.y
+	city_border_bottom = first_building.global_position.y
+	
+	# Find the extreme positions
+	for building in all_buildings:
+		if not is_instance_valid(building):
+			continue
+		
+		var pos = building.global_position
+		
+		if pos.x < city_border_left:
+			city_border_left = pos.x
+		if pos.x > city_border_right:
+			city_border_right = pos.x
+		if pos.y < city_border_top:
+			city_border_top = pos.y
+		if pos.y > city_border_bottom:
+			city_border_bottom = pos.y
+	
+	# Add padding around the borders (so units patrol slightly outside buildings)
+	var padding = 150.0
+	city_border_left -= padding
+	city_border_right += padding
+	city_border_top -= padding
+	city_border_bottom += padding
+	
+	# Calculate city center
+	city_center = Vector2(
+		(city_border_left + city_border_right) / 2.0,
+		(city_border_top + city_border_bottom) / 2.0
+	)
+	
+	city_initialized = true
+	
+	print("=== CITY BORDERS UPDATED ===")
+	print("Left: " + str(city_border_left))
+	print("Right: " + str(city_border_right))
+	print("Top: " + str(city_border_top))
+	print("Bottom: " + str(city_border_bottom))
+	print("Center: " + str(city_center))
+	print("Width: " + str(city_border_right - city_border_left))
+	print("Height: " + str(city_border_bottom - city_border_top))
+	print("============================")
+
+func get_city_patrol_position() -> Vector2:
+	# Return a random position within city borders
+	if not city_initialized or all_buildings.size() == 0:
+		# Fallback to castle position if city not initialized
+		return castle_position
+	
+	var random_x = randf_range(city_border_left, city_border_right)
+	var random_y = randf_range(city_border_top, city_border_bottom)
+	
+	return Vector2(random_x, random_y)
 
 func get_available_unit_types() -> Array:
 	var available_types = ["knight"]  # Knight is always available
@@ -259,6 +376,16 @@ func _check_marriage_arrivals():
 			pending_marriages.remove_at(i)
 			continue
 		
+		# Check if both pawns are close to the house FIRST (most important check)
+		var distance1 = pawn1.global_position.distance_to(house.global_position)
+		var distance2 = pawn2.global_position.distance_to(house.global_position)
+		var arrival_threshold = 50.0  # Distance considered "arrived"
+		
+		# If they haven't arrived yet, skip other checks
+		if distance1 > arrival_threshold or distance2 > arrival_threshold:
+			continue
+		
+		# They've arrived! Now check if it's safe to marry
 		# Check if pawns are fighting (have enemy_target)
 		var pawn1_fighting = false
 		var pawn2_fighting = false
@@ -268,11 +395,15 @@ func _check_marriage_arrivals():
 		if "enemy_target" in pawn2 and pawn2.enemy_target != null and is_instance_valid(pawn2.enemy_target):
 			pawn2_fighting = true
 		
-		# Check if house is under attack
-		var house_under_attack = is_house_under_attack(house)
+		# Check if house is under attack (only if there are enemies in the game)
+		var house_under_attack = false
+		var enemies = get_tree().get_nodes_in_group("enemies")
+		if enemies.size() > 0:
+			house_under_attack = is_house_under_attack(house)
 		
 		# If anyone is fighting or house is under attack, delay the marriage
 		if pawn1_fighting or pawn2_fighting or house_under_attack:
+			print("Marriage delayed - combat in progress")
 			# Optionally, we could cancel after a certain timeout
 			var time_elapsed = (Time.get_ticks_msec() - marriage_data.initiated_at) / 1000.0
 			if time_elapsed > 60.0:  # Cancel if waiting more than 60 seconds
@@ -280,15 +411,10 @@ func _check_marriage_arrivals():
 				pending_marriages.remove_at(i)
 			continue
 		
-		# Check if both pawns are close to the house
-		var distance1 = pawn1.global_position.distance_to(house.global_position)
-		var distance2 = pawn2.global_position.distance_to(house.global_position)
-		var arrival_threshold = 50.0  # Distance considered "arrived"
-		
-		if distance1 <= arrival_threshold and distance2 <= arrival_threshold:
-			# Both pawns have arrived! Complete the marriage
-			marriages_to_complete.append(marriage_data)
-			pending_marriages.remove_at(i)
+		# Both pawns have arrived and it's safe! Complete the marriage
+		print("Both pawns arrived at house - starting marriage!")
+		marriages_to_complete.append(marriage_data)
+		pending_marriages.remove_at(i)
 	
 	# Complete all ready marriages
 	for marriage_data in marriages_to_complete:
@@ -303,13 +429,13 @@ func is_house_under_attack(house) -> bool:
 		if not is_instance_valid(enemy):
 			continue
 		
-		# Check if enemy is targeting this house
+		# Only consider it "under attack" if enemy is actively targeting this house
 		if "target_unit" in enemy and enemy.target_unit == house:
 			return true
 		
-		# Check if enemy is very close to the house (within attack range)
+		# Or if enemy is VERY close to the house (actively attacking range)
 		var distance = enemy.global_position.distance_to(house.global_position)
-		var threat_range = 100.0  # Consider house threatened if enemy within this range
+		var threat_range = 50.0  # Only pause if enemy is RIGHT next to the house
 		if distance <= threat_range:
 			return true
 	
@@ -329,42 +455,81 @@ func complete_marriage(pawn1, pawn2, house):
 	var unit_type1 = available_units[randi() % available_units.size()]
 	var unit_type2 = available_units[randi() % available_units.size()]
 	
-	print("Transforming pawns into: " + unit_type1 + " and " + unit_type2)
+	print("Creating trainees for: " + unit_type1 + " and " + unit_type2)
 	
 	# Calculate positions close to the house
 	var house_pos = house.global_position
-	var offset_distance = 30.0  # How close to the house (adjust as needed)
+	var offset_distance = 30.0
 	
 	# Place them on opposite sides of the house
 	var pos1 = house_pos + Vector2(offset_distance, 0)
 	var pos2 = house_pos + Vector2(-offset_distance, 0)
 	
-	# Transform pawns into units (these won't be tracked)
-	var new_unit1 = transform_pawn_to_unit(pawn1, unit_type1, house, pos1)
-	var new_unit2 = transform_pawn_to_unit(pawn2, unit_type2, house, pos2)
+	# Create trainee units (they handle their own training)
+	var trainee1 = create_trainee_unit(pawn1, unit_type1, house, pos1)
+	var trainee2 = create_trainee_unit(pawn2, unit_type2, house, pos2)
 	
 	# Add to house occupants
-	house.occupants.append(new_unit1)
-	house.occupants.append(new_unit2)
+	house.occupants.append(trainee1)
+	house.occupants.append(trainee2)
+	
+	# ALL units (including Knights) wait for children to be born
+	set_unit_waiting(trainee1, true)
+	set_unit_waiting(trainee2, true)
+	units_waiting_for_children.append(trainee1)
+	units_waiting_for_children.append(trainee2)
 	
 	# Determine number of children
 	var num_children = randi_range(2, 5)
 	print("Marriage complete! " + str(num_children) + " children will be born")
 	
 	# Start the child spawning process (async)
-	spawn_children_over_time(house, num_children)
+	spawn_children_over_time(house, num_children, trainee1, trainee2)
+
+# NEW: Set a unit's waiting state (prevents wandering)
+func set_unit_waiting(unit, waiting: bool):
+	if not is_instance_valid(unit):
+		return
+	
+	# Set the metadata flag
+	unit.set_meta("waiting_for_children", waiting)
+	
+	if waiting:
+		# Stop all movement
+		unit.is_moving = false
+		unit.is_idle = true
+		
+		# Hide the unit (parents go inside the house)
+		unit.visible = false
+		
+		# Play idle animation
+		if unit.animated_sprite and unit.animated_sprite.sprite_frames.has_animation("idle"):
+			unit.animated_sprite.play("idle")
 
 # NEW: Spawn children one by one with delays
-func spawn_children_over_time(house, num_children: int):
+func spawn_children_over_time(house, num_children: int, parent1, parent2):
+	print("Starting child spawning process for " + str(num_children) + " children")
+	print("Parents have entered the house (invisible)")
+	
 	for i in range(num_children):
 		# Check if house still exists
 		if not is_instance_valid(house):
 			print("Child spawning interrupted - house destroyed")
+			# Release parents from waiting (they'll become visible again)
+			release_parents_from_waiting(parent1, parent2)
 			return
 		
-		# Check if house is under attack
-		if is_house_under_attack(house):
+		# Check if house is under attack (only if there are enemies)
+		var enemies = get_tree().get_nodes_in_group("enemies")
+		if enemies.size() > 0 and is_house_under_attack(house):
 			print("Child spawning paused - house under attack!")
+			print("Parents emerge from house to defend!")
+			# Make parents visible so they can fight
+			if is_instance_valid(parent1):
+				parent1.visible = true
+			if is_instance_valid(parent2):
+				parent2.visible = true
+			
 			# Wait until house is no longer under attack
 			while is_house_under_attack(house) and is_instance_valid(house):
 				await get_tree().create_timer(0.5).timeout
@@ -372,19 +537,167 @@ func spawn_children_over_time(house, num_children: int):
 			# Check again if house still exists after waiting
 			if not is_instance_valid(house):
 				print("Child spawning interrupted - house destroyed during attack")
+				# Release parents from waiting
+				release_parents_from_waiting(parent1, parent2)
 				return
 			
 			print("House safe again - resuming child spawning")
+			print("Parents return inside the house (invisible)")
+			# Hide parents again as they go back inside
+			if is_instance_valid(parent1):
+				parent1.visible = false
+			if is_instance_valid(parent2):
+				parent2.visible = false
 		
 		# Spawn the child
+		print("Spawning child " + str(i + 1) + "/" + str(num_children))
 		spawn_baby_pawn(house.global_position, house)
 		print("Child " + str(i + 1) + "/" + str(num_children) + " born!")
 		
 		# Wait before spawning next child (unless it's the last one)
 		if i < num_children - 1:
+			print("Waiting " + str(child_spawn_interval) + " seconds before next child...")
 			await get_tree().create_timer(child_spawn_interval).timeout
 	
 	print("All " + str(num_children) + " children have been born!")
+	print("Parents emerge from the house!")
+	
+	# Release parents from waiting state (they'll become visible again)
+	release_parents_from_waiting(parent1, parent2)
+
+# NEW: Release parents from waiting state - send them to appropriate place
+func release_parents_from_waiting(parent1, parent2):
+	# Release parent 1
+	if is_instance_valid(parent1):
+		parent1.set_meta("waiting_for_children", false)
+		parent1.visible = true
+		units_waiting_for_children.erase(parent1)
+		
+		# Check if this is a Knight (Knights skip training and go straight to patrol)
+		if parent1.type == "Knight":
+			# Knights need to start patrolling - pick their first target
+			if parent1.has_method("pick_random_target"):
+				parent1.pick_random_target()
+			parent1.is_idle = false
+			parent1.is_moving = true
+			print("Knight parent 1 emerges and starts city patrol!")
+		else:
+			# Send trainee to training
+			send_trainee_to_training(parent1)
+			print("Trainee parent 1 heading to training!")
+	
+	# Release parent 2
+	if is_instance_valid(parent2):
+		parent2.set_meta("waiting_for_children", false)
+		parent2.visible = true
+		units_waiting_for_children.erase(parent2)
+		
+		# Check if this is a Knight (Knights skip training and go straight to patrol)
+		if parent2.type == "Knight":
+			# Knights need to start patrolling - pick their first target
+			if parent2.has_method("pick_random_target"):
+				parent2.pick_random_target()
+			parent2.is_idle = false
+			parent2.is_moving = true
+			print("Knight parent 2 emerges and starts city patrol!")
+		else:
+			# Send trainee to training
+			send_trainee_to_training(parent2)
+			print("Trainee parent 2 heading to training!")
+	
+	print("All parents have emerged from the house!")
+
+# NEW: Send a trainee to their assigned training building (called when children are born)
+func send_trainee_to_training(trainee):
+	if not is_instance_valid(trainee):
+		return
+	
+	# Units with training handle their own arrival and training
+	# Just make sure they're moving toward their building
+	if trainee.has_meta("training_building"):
+		var training_building = trainee.get_meta("training_building")
+		if is_instance_valid(training_building):
+			trainee.target_position = training_building.global_position
+			trainee.is_moving = true
+			trainee.is_idle = false
+			print("Trainee heading to training building")
+
+# NEW: Find the appropriate training building for a job
+func find_training_building(job: String):
+	match job:
+		"lancer":
+			if all_barracks.size() > 0:
+				return all_barracks[0]  # Return first barracks
+		"archer":
+			if all_archeries.size() > 0:
+				return all_archeries[0]  # Return first archery
+		"monk":
+			if all_monasteries.size() > 0:
+				return all_monasteries[0]  # Return first monastery
+		"knight":
+			return null  # Knights don't need training
+	
+	return null
+
+# NEW: Create a trainee unit (unit that starts in training mode)
+func create_trainee_unit(old_pawn, unit_type: String, house, position: Vector2):
+	# Remove old pawn from tracking
+	all_pawns.erase(old_pawn)
+	
+	# Create the unit in training mode
+	var trainee
+	var training_building = find_training_building(unit_type)
+	
+	match unit_type:
+		"lancer":
+			trainee = lancer_scene.instantiate()
+		"archer":
+			trainee = archer_scene.instantiate()
+		"monk":
+			trainee = monk_scene.instantiate()
+		"knight":
+			# Knights don't need training - create fully trained
+			trainee = knight_scene.instantiate()
+			trainee.global_position = position
+			if "home" in trainee:
+				trainee.home = house
+			add_child(trainee)
+			old_pawn.queue_free()
+			print("Knight created - no training needed!")
+			return trainee
+		_:
+			# Default to knight
+			trainee = knight_scene.instantiate()
+			trainee.global_position = position
+			if "home" in trainee:
+				trainee.home = house
+			add_child(trainee)
+			old_pawn.queue_free()
+			print("Knight created (default) - no training needed!")
+			return trainee
+	
+	# Set training metadata BEFORE adding to tree
+	trainee.set_meta("in_training", true)
+	if training_building:
+		trainee.set_meta("training_building", training_building)
+		# Set them to walk toward the training building
+		trainee.center_position = training_building.global_position
+		trainee.circle_radius = 150.0  # Start wandering toward it
+	
+	# Set position and home
+	trainee.global_position = position
+	if "home" in trainee:
+		trainee.home = house
+	
+	# Add to scene (this calls _ready())
+	add_child(trainee)
+	
+	# Remove old pawn
+	old_pawn.queue_free()
+	
+	print("Created " + unit_type + " trainee")
+	
+	return trainee
 
 func transform_pawn_to_unit(old_pawn, unit_type: String, house, position: Vector2):
 	# Remove old pawn from tracking (important!)
@@ -586,9 +899,16 @@ func try_place_building(position: Vector2):
 		add_child(building)
 		house_positions.append(position)
 		
+		# Register building for city borders
+		register_building(building)
+		
 		# Register house if it's a house
 		if current_building_type == "house":
 			register_house(building)
+		
+		# Register training buildings
+		if current_building_type in ["barracks", "archery", "monastry"]:
+			register_training_building(building)
 				
 		print(current_building_type.capitalize() + " placed")
 		
@@ -632,11 +952,20 @@ func is_valid_building_position(position: Vector2) -> bool:
 func create_enemy_spawn_timer():
 	enemy_spawn_timer = Timer.new()
 	add_child(enemy_spawn_timer)
-	enemy_spawn_timer.wait_time = randf_range(spawn_interval_min, spawn_interval_max)
+	enemy_spawn_timer.wait_time = 120.0  # Wait 2 minutes (120 seconds) before first spawn
+	enemy_spawn_timer.one_shot = true  # First timer is one-shot
+	enemy_spawn_timer.timeout.connect(_on_first_enemy_spawn)
+	enemy_spawn_timer.start()
+	print("Enemies will start spawning in 2 minutes...")
+
+func _on_first_enemy_spawn():
+	print("2 minutes passed - enemy spawning enabled!")
+	# Now create the recurring timer
 	enemy_spawn_timer.one_shot = false
+	enemy_spawn_timer.wait_time = randf_range(spawn_interval_min, spawn_interval_max)
+	enemy_spawn_timer.timeout.disconnect(_on_first_enemy_spawn)
 	enemy_spawn_timer.timeout.connect(_on_enemy_spawn_timer_timeout)
 	enemy_spawn_timer.start()
-	print("Enemy spawning enabled")
 
 func _on_enemy_spawn_timer_timeout():
 	var current_enemies = get_tree().get_nodes_in_group("enemies")
