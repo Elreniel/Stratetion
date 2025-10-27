@@ -1,11 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://x4h0ku5bj2ks"]
+[gd_scene load_steps=4 format=3 uid="uid://x4h0ku5bj2ks"]
 
-[ext_resource type="Texture2D" uid="uid://bchg7ok2wwwv5" path="res://Buildings/Red Buildings/Barracks.png" id="1_a2mic"]
+[ext_resource type="Texture2D" uid="uid://bchg7ok2wwwv5" path="res://assets/Buildings/Red Buildings/Barracks.png" id="1_a2mic"]
+[ext_resource type="Script" uid="uid://btlletvggwuno" path="res://scripts/buildings/barracks.gd" id="1_i88yw"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_65la3"]
 size = Vector2(153, 166)
 
 [node name="Barracks" type="StaticBody2D"]
+script = ExtResource("1_i88yw")
 
 [node name="BarrackSprite" type="Sprite2D" parent="."]
 texture = ExtResource("1_a2mic")

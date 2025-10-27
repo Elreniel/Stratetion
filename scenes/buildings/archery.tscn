@@ -1,11 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://bwdyl3xjyq2cp"]
+[gd_scene load_steps=4 format=3 uid="uid://bwdyl3xjyq2cp"]
 
-[ext_resource type="Texture2D" uid="uid://d03vu8e4eb6h" path="res://Buildings/Red Buildings/Archery.png" id="1_ea1b2"]
+[ext_resource type="Texture2D" uid="uid://d03vu8e4eb6h" path="res://assets/Buildings/Red Buildings/Archery.png" id="1_ea1b2"]
+[ext_resource type="Script" uid="uid://dd5vhgddo8pce" path="res://scripts/buildings/archery.gd" id="1_fatft"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_65la3"]
 size = Vector2(177.75, 175)
 
 [node name="Archery" type="StaticBody2D"]
+script = ExtResource("1_fatft")
 
 [node name="ArcherySprite" type="Sprite2D" parent="."]
 texture = ExtResource("1_ea1b2")

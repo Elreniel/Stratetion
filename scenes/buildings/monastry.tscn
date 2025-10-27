@@ -1,11 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://3sgfx1mtsx60"]
+[gd_scene load_steps=4 format=3 uid="uid://3sgfx1mtsx60"]
 
-[ext_resource type="Texture2D" uid="uid://qdbwqau53pdp" path="res://Buildings/Red Buildings/Monastery.png" id="1_8s776"]
+[ext_resource type="Texture2D" uid="uid://qdbwqau53pdp" path="res://assets/Buildings/Red Buildings/Monastery.png" id="1_8s776"]
+[ext_resource type="Script" uid="uid://05os3j2lflhf" path="res://scripts/buildings/monastry.gd" id="1_drkjv"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_65la3"]
 size = Vector2(153, 170)
 
 [node name="Monastry" type="StaticBody2D"]
+script = ExtResource("1_drkjv")
 
 [node name="MonastrySprite" type="Sprite2D" parent="."]
 texture = ExtResource("1_8s776")

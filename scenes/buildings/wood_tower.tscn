@@ -1,7 +1,8 @@
-[gd_scene load_steps=16 format=3 uid="uid://xgwc7tbgk68p"]
+[gd_scene load_steps=17 format=3 uid="uid://xgwc7tbgk68p"]
 
-[ext_resource type="Texture2D" uid="uid://b7kjcl5wc75f6" path="res://Buildings/Wood_Tower/Wood_Tower_Red.png" id="1_emdkf"]
-[ext_resource type="Texture2D" uid="uid://dq1uu2bjdj1wf" path="res://Units/Red Units/Archer/Archer_Red.png" id="2_aw5fl"]
+[ext_resource type="Texture2D" uid="uid://b7kjcl5wc75f6" path="res://assets/Buildings/Wood_Tower/Wood_Tower_Red.png" id="1_emdkf"]
+[ext_resource type="Script" uid="uid://ke60m6ms5e2q" path="res://scripts/buildings/wood_tower.gd" id="1_fbhuw"]
+[ext_resource type="Texture2D" uid="uid://dq1uu2bjdj1wf" path="res://assets/Units/Red Units/Archer/Archer_Red.png" id="2_aw5fl"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_5syi4"]
 atlas = ExtResource("1_emdkf")
@@ -94,6 +95,7 @@ radius = 47.0
 height = 158.0
 
 [node name="WoodTower" type="StaticBody2D"]
+script = ExtResource("1_fbhuw")
 
 [node name="TowerSprite" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_sedd3")

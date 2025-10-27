@@ -1,11 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://cg84bu0dgf5so"]
+[gd_scene load_steps=4 format=3 uid="uid://cg84bu0dgf5so"]
 
-[ext_resource type="Texture2D" uid="uid://d2alhgv8pe2jw" path="res://Buildings/Red Buildings/Castle.png" id="1_bly62"]
+[ext_resource type="Texture2D" uid="uid://d2alhgv8pe2jw" path="res://assets/Buildings/Red Buildings/Castle.png" id="1_bly62"]
+[ext_resource type="Script" uid="uid://c7imbqelr6gis" path="res://scripts/buildings/castle.gd" id="1_pbpso"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0ysgy"]
 size = Vector2(258, 201.5)
 
 [node name="Castle" type="StaticBody2D" groups=["interactable"]]
+script = ExtResource("1_pbpso")
 
 [node name="CastleSprite" type="Sprite2D" parent="."]
 texture = ExtResource("1_bly62")

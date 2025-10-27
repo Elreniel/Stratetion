@@ -65,23 +65,29 @@ var difficulty_increase_interval: float = 60.0  # Increase difficulty every 60 s
 var spawn_rate_multiplier: float = 1.0
 var max_enemies_increase: int = 2  # Add 2 to max enemies per difficulty increase
 
-# Log display
-var log_label: Label
-var log_messages: Array = []
-var max_log_lines: int = 10
+# Game state
+var game_over: bool = false
+var castle = null
+
+# UI for game over
+var game_over_panel: Panel = null
+var game_over_label: Label = null
 
 # Camera reference
 var camera: Camera2D
 
 func _ready():
 	
-	var castle = get_node_or_null("Castle")
+	castle = get_node_or_null("Castle")
 	if castle:
 		castle_position = castle.global_position
+		castle.castle_destroyed.connect(_on_castle_destroyed)
+		print("Castle defended at " + str(castle_position))
 	else:
-		# Option 2: Manual position (adjust to your castle location)
+		# Fallback position if no castle node
 		castle_position = Vector2(background_width / 2, background_height / 2)
-	
+		print("No castle found, using center position")
+		
 	background_width = main_background.size.x
 	background_height = main_background.size.y
 	
@@ -291,19 +297,6 @@ func _process(delta):
 	
 	game_time += delta
 	update_difficulty()
-	
-	# Update log position to follow camera
-	if camera and log_label:
-		var viewport_size = get_viewport_rect().size
-		var camera_pos = camera.get_screen_center_position()
-		var top_left = camera_pos - viewport_size / 2 + Vector2(10, 10)
-		
-		var panel = log_label.get_meta("panel")
-		if panel:
-			panel.global_position = top_left
-			log_label.position = Vector2(10, 5)  # Position relative to panel
-			# Adjust panel size to fit text
-			panel.size = log_label.size + Vector2(20, 10)
 	
 	# Update preview position to follow mouse
 	if building_mode and building_preview:
@@ -547,3 +540,125 @@ func update_difficulty():
 	
 	# Update max enemies (more enemies can exist at once)
 	max_enemies = 20 + (difficulty_level * max_enemies_increase)
+
+func _on_castle_destroyed():
+	if game_over:
+		return
+	
+	game_over = true
+	print("💀 GAME OVER - Castle Destroyed!")
+	
+	# Stop enemy spawning
+	if enemy_spawn_timer:
+		enemy_spawn_timer.stop()
+	
+	# Stop marriage checking
+	if marriage_check_timer:
+		marriage_check_timer.stop()
+	
+	# Show game over screen
+	show_game_over_screen()
+
+func show_game_over_screen():
+	# Create game over panel
+	game_over_panel = Panel.new()
+	game_over_panel.z_index = 2000
+	
+	# Panel size
+	var panel_size = Vector2(400, 300)
+	
+	# Center on castle position instead of screen
+	if castle and is_instance_valid(castle):
+		game_over_panel.global_position = castle.global_position - (panel_size / 2)
+	else:
+		# Fallback: center on screen
+		var viewport_size = get_viewport_rect().size
+		game_over_panel.position = (viewport_size - panel_size) / 2
+	
+	game_over_panel.size = panel_size
+	
+	# Style the panel
+	var stylebox = StyleBoxFlat.new()
+	stylebox.bg_color = Color(0.1, 0.1, 0.1, 0.95)
+	stylebox.border_color = Color(0.8, 0.2, 0.2)
+	stylebox.set_border_width_all(5)
+	stylebox.set_corner_radius_all(10)
+	game_over_panel.add_theme_stylebox_override("panel", stylebox)
+	
+	add_child(game_over_panel)
+	
+	# Create container for content
+	var vbox = VBoxContainer.new()
+	vbox.position = Vector2(20, 20)
+	vbox.size = panel_size - Vector2(40, 40)
+	game_over_panel.add_child(vbox)
+	
+	# Game Over title
+	var title_label = Label.new()
+	title_label.text = "💀 GAME OVER 💀"
+	title_label.add_theme_font_size_override("font_size", 36)
+	title_label.add_theme_color_override("font_color", Color(1, 0.3, 0.3))
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title_label)
+	
+	# Add spacing
+	var spacer1 = Control.new()
+	spacer1.custom_minimum_size = Vector2(0, 20)
+	vbox.add_child(spacer1)
+	
+	# Castle destroyed message
+	var message_label = Label.new()
+	message_label.text = "Your Castle Has Been Destroyed!"
+	message_label.add_theme_font_size_override("font_size", 20)
+	message_label.add_theme_color_override("font_color", Color.WHITE)
+	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	vbox.add_child(message_label)
+	
+	# Add spacing
+	var spacer2 = Control.new()
+	spacer2.custom_minimum_size = Vector2(0, 20)
+	vbox.add_child(spacer2)
+	
+	# Stats
+	var stats_label = Label.new()
+	var survived_time = int(game_time)
+	var minutes = survived_time / 60
+	var seconds = survived_time % 60
+	var difficulty_level = int(game_time / difficulty_increase_interval)
+	
+	stats_label.text = "Survived: %d:%02d\nDifficulty Level: %d" % [minutes, seconds, difficulty_level]
+	stats_label.add_theme_font_size_override("font_size", 18)
+	stats_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(stats_label)
+	
+	# Add spacing
+	var spacer3 = Control.new()
+	spacer3.custom_minimum_size = Vector2(0, 30)
+	vbox.add_child(spacer3)
+	
+	# Restart button
+	var restart_button = Button.new()
+	restart_button.text = "Restart Game"
+	restart_button.custom_minimum_size = Vector2(200, 50)
+	restart_button.pressed.connect(_on_restart_pressed)
+	vbox.add_child(restart_button)
+	
+	# Quit button
+	var quit_button = Button.new()
+	quit_button.text = "Quit to Menu"
+	quit_button.custom_minimum_size = Vector2(200, 50)
+	quit_button.pressed.connect(_on_quit_pressed)
+	vbox.add_child(quit_button)
+	
+	# Pause the game
+	get_tree().paused = true
+
+func _on_restart_pressed():
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+func _on_quit_pressed():
+	get_tree().paused = false
+	get_tree().quit()

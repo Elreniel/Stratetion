@@ -111,21 +111,50 @@ func _physics_process(delta):
 		patrol_toward_castle(delta)
 
 func _check_for_targets():
+	# Priority 1: Units (within normal detection range)
 	var closest_unit = null
-	var closest_distance = detection_range
+	var closest_unit_distance = detection_range
 	
 	var all_units = get_tree().get_nodes_in_group("units")
-	
 	for unit in all_units:
 		if is_instance_valid(unit):
 			var distance = global_position.distance_to(unit.global_position)
-			if distance < closest_distance:
-				closest_distance = distance
+			if distance < closest_unit_distance:
+				closest_unit_distance = distance
 				closest_unit = unit
 	
+	# If found a unit close enough, attack it immediately
 	if closest_unit:
 		target_unit = closest_unit
-
+		return
+	
+	# Priority 2: Buildings excluding castle (slightly larger range)
+	var closest_building = null
+	var closest_building_distance = detection_range * 1.3
+	
+	var all_buildings = get_tree().get_nodes_in_group("buildings")
+	for building in all_buildings:
+		if is_instance_valid(building) and not building.is_in_group("castle"):
+			var distance = global_position.distance_to(building.global_position)
+			if distance < closest_building_distance:
+				closest_building_distance = distance
+				closest_building = building
+	
+	# If found a building, attack it
+	if closest_building:
+		target_unit = closest_building
+		return
+	
+	# Priority 3: Castle (only when very close and no other targets)
+	var castles = get_tree().get_nodes_in_group("castle")
+	for castle in castles:
+		if is_instance_valid(castle):
+			var distance = global_position.distance_to(castle.global_position)
+			# Only target castle if very close
+			if distance < attack_range * 2:
+				target_unit = castle
+				return
+		
 func move_toward_target(target_pos: Vector2, delta: float):
 	var direction = (target_pos - global_position).normalized()
 	global_position += direction * movement_speed * delta
@@ -146,10 +175,18 @@ func move_toward_target(target_pos: Vector2, delta: float):
 func patrol_toward_castle(delta):
 	var distance_to_castle = global_position.distance_to(castle_position)
 	
-	# If very close to castle, attack it or just idle
+	# If very close to castle area, force check for targets
+	if distance_to_castle < 200:
+		# This will find the castle if no units/buildings nearby
+		_check_for_targets()
+		
+		# If found a target (likely the castle), let _physics_process handle it
+		if target_unit:
+			return
+	
+	# If extremely close and still no target, just idle
 	if distance_to_castle < 50:
 		play_idle()
-		# Optional: Attack castle here
 		return
 	
 	# Move toward castle
@@ -158,14 +195,12 @@ func patrol_toward_castle(delta):
 	
 	is_moving = true
 	
-	# Flip sprite based on direction
 	if animated_sprite:
 		if direction.x < 0:
 			animated_sprite.flip_h = true
 		else:
 			animated_sprite.flip_h = false
 		
-		# Play walk animation
 		if animated_sprite.sprite_frames.has_animation("walk"):
 			animated_sprite.play("walk")
 
