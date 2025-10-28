@@ -1,10 +1,23 @@
 extends Building
 
+# ============================================
+# MONASTERY STATS
+# ============================================
+
+var monastery_health: int = randi_range(225, 275)
+var monastery_max_health: int = monastery_health
+
+# ============================================
+# INITIALIZATION
+# ============================================
+
 func _ready():
-	building_type = "Monastry"
-	type = "Monastry"
-	health = 250
-	max_health = 250
+	building_type = "Monastery"
+	type = "Monastery"
 	
-	add_to_group("monastry")
+	# Apply monastery stats
+	health = monastery_health
+	max_health = monastery_max_health
+	
+	add_to_group("monastery")
 	super._ready()
