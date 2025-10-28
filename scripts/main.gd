@@ -33,8 +33,8 @@ extends Node2D
 
 # Resource Spawn Settings
 @export var num_forests: int = randi_range(3, 5)  # Number of forest clusters
-@export var trees_per_forest_min: int = 20  # Min trees per forest cluster
-@export var trees_per_forest_max: int = 35  # Max trees per forest cluster
+@export var trees_per_forest_min: int = 40  # Min trees per forest cluster
+@export var trees_per_forest_max: int = 100  # Max trees per forest cluster
 @export var tree_spacing_min: float = 30.0  # Min distance between trees in forest
 @export var tree_spacing_max: float = 60.0  # Max distance between trees in forest
 @export var forest_cluster_radius: float = randf_range(100.0, 150.0)  # Size of forest cluster
@@ -1098,7 +1098,10 @@ func get_random_map_position(existing_positions: Array[Vector2]) -> Vector2:
 func spawn_forest_cluster(center_position: Vector2):
 	var num_trees = randi_range(trees_per_forest_min, trees_per_forest_max)
 	
-	print("Spawning forest cluster with " + str(num_trees) + " trees at " + str(center_position))
+	# Choose ONE random tree type for the entire forest cluster
+	var forest_tree_type = randi_range(1, 4)  # Tree1, Tree2, Tree3, or Tree4
+	
+	print("Spawning forest cluster with " + str(num_trees) + " trees (Type: Tree" + str(forest_tree_type) + ") at " + str(center_position))
 	
 	# Save cluster center position
 	forest_cluster_positions.append(center_position)
@@ -1126,15 +1129,21 @@ func spawn_forest_cluster(center_position: Vector2):
 				break
 		
 		if not too_close:
-			spawn_single_tree(tree_position)
+			spawn_single_tree(tree_position, forest_tree_type)  # Pass the tree type
 
-func spawn_single_tree(position: Vector2):
+func spawn_single_tree(position: Vector2, tree_type: int = 1):
 	var tree = forest_scene.instantiate()
 	tree.global_position = position
-		
+	
 	# Random scale variation for more natural look
-	var scale_variation = randf_range(0.85, 1.15)
+	var scale_variation = randf_range(0.5, 1.5)
 	tree.scale = Vector2(scale_variation, scale_variation)
+	
+	# Set tree sprite based on passed tree_type
+	var tree_sprite = tree.get_node_or_null("ForestSprite")
+	if tree_sprite:
+		var tree_texture_path = "res://assets/resources/Tree/Tree" + str(tree_type) + ".png"
+		tree_sprite.texture = load(tree_texture_path)
 	
 	add_child(tree)
 	
